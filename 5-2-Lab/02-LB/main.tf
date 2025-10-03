@@ -30,6 +30,9 @@ resource "google_compute_instance" "backend" {
     }
   }
   network_interface {
+    access_config {
+
+    }
     network = "default"
   }
   service_account {
@@ -38,7 +41,7 @@ resource "google_compute_instance" "backend" {
   }
 
   metadata = {
-    startup-script-url = "https://storage.googleapis.com/fancy-store-$DEVSHELL_PROJECT_ID/startup-script.sh"
+    startup-script-url = "https://storage.googleapis.com/fancy-store-${var.project_id}/startup-script.sh"
   }
 }
 
@@ -54,6 +57,9 @@ resource "google_compute_instance" "frontend" {
     }
   }
   network_interface {
+    access_config {
+
+    }
     network = "default"
   }
   service_account {
@@ -62,7 +68,7 @@ resource "google_compute_instance" "frontend" {
   }
 
   metadata = {
-    startup-script-url = "https://storage.googleapis.com/fancy-store-$DEVSHELL_PROJECT_ID/startup-script.sh"
+    startup-script-url = "https://storage.googleapis.com/fancy-store-${var.project_id}/startup-script.sh"
   }
 }
 
@@ -71,7 +77,8 @@ resource "google_compute_firewall" "fw-fe" {
   network   = "default"
   direction = "INGRESS"
 
-  target_tags = ["frontend"]
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["frontend"]
 
   priority = "1000"
 
@@ -86,7 +93,8 @@ resource "google_compute_firewall" "fw-be" {
   network   = "default"
   direction = "INGRESS"
 
-  target_tags = ["backend"]
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["backend"]
 
   priority = "1000"
 
@@ -107,6 +115,9 @@ resource "google_compute_instance_template" "fancy-be" {
     boot         = true
   }
   network_interface {
+    access_config {
+
+    }
     network = "default"
   }
   service_account {
@@ -115,7 +126,7 @@ resource "google_compute_instance_template" "fancy-be" {
   }
 
   metadata = {
-    startup-script-url = "https://storage.googleapis.com/fancy-store-$DEVSHELL_PROJECT_ID/startup-script.sh"
+    startup-script-url = "https://storage.googleapis.com/fancy-store-${var.project_id}/startup-script.sh"
   }
 }
 
@@ -129,6 +140,9 @@ resource "google_compute_instance_template" "fancy-fe" {
     boot         = true
   }
   network_interface {
+    access_config {
+
+    }
     network = "default"
   }
   service_account {
@@ -137,25 +151,11 @@ resource "google_compute_instance_template" "fancy-fe" {
   }
 
   metadata = {
-    startup-script-url = "https://storage.googleapis.com/fancy-store-$DEVSHELL_PROJECT_ID/startup-script.sh"
+    startup-script-url = "https://storage.googleapis.com/fancy-store-${var.project_id}/startup-script.sh"
   }
 }
 
-# # # Health check for managed instance groups
-resource "google_compute_health_check" "fancy-be-hc" {
-  name                = "fancy-be-hc"
-  check_interval_sec  = 30
-  healthy_threshold   = 1
-  timeout_sec         = 10
-  unhealthy_threshold = 3
-
-  http_health_check {
-    port         = "8081"
-    request_path = "/api/orders"
-  }
-}
-
-# # Create managed instance group
+# Create managed instances group
 resource "google_compute_instance_group_manager" "fancy-be-mig" {
   name               = "fancy-be-mig"
   base_instance_name = "fancy-be"
@@ -180,36 +180,33 @@ resource "google_compute_instance_group_manager" "fancy-be-mig" {
   }
 }
 
-resource "google_compute_autoscaler" "fancy-be-mig-scale" {
-  name = "fancy-be-mig-scale"
-
-  target = google_compute_instance_group_manager.fancy-be-mig.self_link
-  autoscaling_policy {
-    min_replicas = 1
-    max_replicas = 2
-    load_balancing_utilization {
-      target = 0.6
-    }
-    cooldown_period = 60
-  }
-}
-
-
-# # # Health check for managed instance groups
-resource "google_compute_health_check" "fancy-fe-hc" {
-  name                = "fancy-fe-hc"
+resource "google_compute_health_check" "fancy-be-hc" {
+  name                = "fancy-be-hc"
   check_interval_sec  = 30
   healthy_threshold   = 1
   timeout_sec         = 10
   unhealthy_threshold = 3
 
   http_health_check {
-    port         = "8080"
-    request_path = "/"
+    port         = "8081"
+    request_path = "/api/orders"
   }
 }
 
-# # Create managed instance group
+# resource "google_compute_autoscaler" "fancy-be-mig-scale" {
+#   name = "fancy-be-mig-scale"
+
+#   target = google_compute_instance_group_manager.fancy-be-mig.self_link
+#   autoscaling_policy {
+#     min_replicas = 1
+#     max_replicas = 2
+#     load_balancing_utilization {
+#       target = 0.6
+#     }
+#     cooldown_period = 60
+#   }
+# }
+
 resource "google_compute_instance_group_manager" "fancy-fe-mig" {
   name               = "fancy-fe-mig"
   base_instance_name = "fancy-fe"
@@ -230,19 +227,32 @@ resource "google_compute_instance_group_manager" "fancy-fe-mig" {
   }
 }
 
-resource "google_compute_autoscaler" "fancy-fe-mig-scale" {
-  name = "fancy-fe-mig-scale"
+resource "google_compute_health_check" "fancy-fe-hc" {
+  name                = "fancy-fe-hc"
+  check_interval_sec  = 30
+  healthy_threshold   = 1
+  timeout_sec         = 10
+  unhealthy_threshold = 3
 
-  target = google_compute_instance_group_manager.fancy-fe-mig.self_link
-  autoscaling_policy {
-    min_replicas = 1
-    max_replicas = 2
-    load_balancing_utilization {
-      target = 0.6
-    }
-    cooldown_period = 60
+  http_health_check {
+    port         = "8080"
+    request_path = "/"
   }
 }
+
+# resource "google_compute_autoscaler" "fancy-fe-mig-scale" {
+#   name = "fancy-fe-mig-scale"
+
+#   target = google_compute_instance_group_manager.fancy-fe-mig.self_link
+#   autoscaling_policy {
+#     min_replicas = 1
+#     max_replicas = 2
+#     load_balancing_utilization {
+#       target = 0.6
+#     }
+#     cooldown_period = 60
+#   }
+# }
 
 # Allow Health Check
 resource "google_compute_firewall" "allow-health-check" {
@@ -261,9 +271,9 @@ resource "google_compute_firewall" "allow-health-check" {
   }
 }
 
-# # # HTTP Load Balancer
+# # # # HTTP Load Balancer
 
-# # # Backend
+# # # # Backend
 
 resource "google_compute_health_check" "fancy-fe-frontend-hc" {
   name = "fancy-fe-frontend-hc"
@@ -289,12 +299,23 @@ resource "google_compute_health_check" "fancy-be-products-hc" {
   }
 }
 
+
+# port_name is the one defined in the MIG
 # # Create backend service
 resource "google_compute_backend_service" "fancy-fe-frontend" {
   name                  = "fancy-fe-frontend"
   health_checks         = [google_compute_health_check.fancy-fe-frontend-hc.self_link]
   load_balancing_scheme = "EXTERNAL"
   port_name             = "frontend"
+  # enable_cdn = true
+  # cdn_policy {
+  #   cache_mode = "CACHE_ALL_STATIC"
+  #   default_ttl = 3600
+  #   client_ttl  = 7200
+  #   max_ttl     = 10800
+  #   negative_caching = true
+  #   signed_url_cache_max_age_sec = 7200
+  # }
   log_config {
     enable      = true
     sample_rate = 1
@@ -303,7 +324,7 @@ resource "google_compute_backend_service" "fancy-fe-frontend" {
     # balancing_mode        = "RATE"
     # capacity_scaler       = 1
     # max_rate_per_instance = 50
-    group = google_compute_instance_group_manager.fancy-fe-mig.self_link
+    group = google_compute_instance_group_manager.fancy-fe-mig.instance_group
   }
 }
 
@@ -320,7 +341,7 @@ resource "google_compute_backend_service" "fancy-be-orders" {
     # balancing_mode  = "UTILIZATION"
     # capacity_scaler = 1
     # max_utilization = 0.6
-    group = google_compute_instance_group_manager.fancy-be-mig.self_link
+    group = google_compute_instance_group_manager.fancy-be-mig.instance_group
   }
 }
 
@@ -337,60 +358,60 @@ resource "google_compute_backend_service" "fancy-be-products" {
     # balancing_mode        = "RATE"
     # capacity_scaler       = 1
     # max_rate_per_instance = 50
-    group = google_compute_instance_group_manager.fancy-be-mig.self_link
+    group = google_compute_instance_group_manager.fancy-be-mig.instance_group
   }
 }
 
 
 
 
-# # # Frontend
+# # # # Frontend
 
-# Create global static external IP address
+# # Create global static external IP address
 
-# resource "google_compute_address" "my-ephemeral-address" {
-#   name   = "my-ephemeral-address"
-#   #region = "us-central1"
-#   address_type = "EXTERNAL"
-#   #purpose = "VPC_PEERING"
-# }
+# # resource "google_compute_address" "my-ephemeral-address" {
+# #   name   = "my-ephemeral-address"
+# #   #region = "us-central1"
+# #   address_type = "EXTERNAL"
+# #   #purpose = "VPC_PEERING"
+# # }
 
 
-resource "google_compute_global_address" "lb-ipv4" {
+resource "google_compute_global_address" "lb-ip" {
   provider     = google-beta
-  name         = "lb-ipv4-1"
+  name         = "lb-ip"
   address_type = "EXTERNAL"
   ip_version   = "IPV4"
-}
-
-resource "google_compute_global_address" "lb-ipv6" {
-  provider     = google-beta
-  name         = "lb-ipv6-1"
-  address_type = "EXTERNAL"
-  ip_version   = "IPV6"
 }
 
 # URL map (name of the load balancer)
 resource "google_compute_url_map" "fancy-map" {
   name            = "fancy-map"
-  default_service = google_compute_backend_service.fancy-fe-frontend.self_link
+  default_service = google_compute_backend_service.fancy-fe-frontend.id
+
+  host_rule {
+    hosts = [
+      "*",
+    ]
+    path_matcher = "orders"
+  }
 
   path_matcher {
-    name            = "mysite"
-    default_service = google_compute_backend_service.fancy-fe-frontend.self_link
+    name            = "orders"
+    default_service = google_compute_backend_service.fancy-fe-frontend.id
 
     path_rule {
       paths   = ["/api/orders"]
-      service = google_compute_backend_service.fancy-be-orders.self_link
+      service = google_compute_backend_service.fancy-be-orders.id
     }
     path_rule {
       paths   = ["/api/products"]
-      service = google_compute_backend_service.fancy-be-products.self_link
+      service = google_compute_backend_service.fancy-be-products.id
     }
   }
 }
 
-# # Proxy HTTP
+# Proxy HTTP
 resource "google_compute_target_http_proxy" "fancy-proxy" {
   name    = "fancy-proxy"
   url_map = google_compute_url_map.fancy-map.self_link
@@ -401,7 +422,7 @@ resource "google_compute_global_forwarding_rule" "fancy-http-rule" {
   name       = "fancy-http-rule"
   target     = google_compute_target_http_proxy.fancy-proxy.self_link
   port_range = "80"
-  #ip_address = google_compute_global_address.lb-ipv4.address
+  ip_address = google_compute_global_address.lb-ip.address
 }
 
 

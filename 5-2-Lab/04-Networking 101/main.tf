@@ -36,7 +36,7 @@ resource "google_compute_subnetwork" "subnet-asia-east" {
 
 resource "google_compute_firewall" "nw101-allow-http" {
   name        = "nw101-allow-http"
-  network     = google_compute_subnetwork.subnet-us-central.name
+  network     = google_compute_network.taw-custom-network.name
   source_ranges = ["0.0.0.0/0"]
   allow {
     protocol = "tcp"
@@ -46,8 +46,9 @@ resource "google_compute_firewall" "nw101-allow-http" {
 }
 
 resource "google_compute_firewall" "nw101-allow-icmp" {
-  name        = google_compute_subnetwork.subnet-us-central.name
-  network     = "taw-custom-network"
+  name        = "nw101-allow-icmp"
+  network     = google_compute_network.taw-custom-network.name
+  source_ranges = ["0.0.0.0/0"]
   allow {
     protocol = "icmp"
   }
@@ -55,8 +56,8 @@ resource "google_compute_firewall" "nw101-allow-icmp" {
 }
 
 resource "google_compute_firewall" "nw101-allow-internal" {
-  name        = google_compute_subnetwork.subnet-us-central.name
-  network     = "taw-custom-network"
+  name        = "nw101-allow-internal"
+  network     = google_compute_network.taw-custom-network.name
   source_ranges = ["10.0.0.0/16", "10.2.0.0/16", "10.1.0.0/16"]
   allow {
     protocol = "tcp"
@@ -72,8 +73,9 @@ resource "google_compute_firewall" "nw101-allow-internal" {
 }
 
 resource "google_compute_firewall" "nw101-allow-ssh" {
-  name        = google_compute_subnetwork.subnet-us-central.name
-  network     = "taw-custom-network"
+  name        = "nw101-allow-ssh"
+  network     = google_compute_network.taw-custom-network.name
+  source_ranges = ["0.0.0.0/0"]
   allow {
     protocol = "tcp"
     ports    = ["22"]
@@ -82,8 +84,9 @@ resource "google_compute_firewall" "nw101-allow-ssh" {
 }
 
 resource "google_compute_firewall" "nw101-allow-rdp" {
-  name        = google_compute_subnetwork.subnet-us-central.name
-  network     = "taw-custom-network"
+  name        = "nw101-allow-rdp"
+  network     = google_compute_network.taw-custom-network.name
+  source_ranges = ["0.0.0.0/0"]
   allow {
     protocol = "tcp"
     ports    = ["3389"]
@@ -103,6 +106,9 @@ resource "google_compute_instance" "us-test-01" {
     }
   }
   network_interface {
+    access_config {
+      
+    }
     subnetwork = google_compute_subnetwork.subnet-us-central.name
   }
   service_account {
@@ -123,6 +129,9 @@ resource "google_compute_instance" "europe-test-01" {
     }
   }
   network_interface {
+    access_config {
+      
+    }
     subnetwork = google_compute_subnetwork.subnet-europe-west.name
   }
   service_account {
@@ -143,6 +152,9 @@ resource "google_compute_instance" "asia-test-01" {
     }
   }
   network_interface {
+    access_config {
+      
+    }
     subnetwork = google_compute_subnetwork.subnet-asia-east.name
   }
   service_account {
@@ -163,6 +175,9 @@ resource "google_compute_instance" "us-test-02" {
     }
   }
   network_interface {
+    access_config {
+      
+    }
     subnetwork = google_compute_subnetwork.subnet-us-central.name
   }
   service_account {

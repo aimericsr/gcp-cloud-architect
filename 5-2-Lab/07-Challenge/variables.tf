@@ -6,7 +6,7 @@ variable "credentials_file" {
 variable "project_id" {
   type        = string
   description = "The ID of the GCP project where the resources will be created."
-  default     = "qwiklabs-gcp-00-bc7b2f21ded6"
+  default     = "qwiklabs-gcp-02-a94b66491ee2 "
 }
 
 variable "region" {

@@ -17,34 +17,76 @@ provider "google" {
 
 
 # Development VPC
-resource "google_compute_network" "securenetwork" {
-  name                            = "securenetwork"
-  description                     = "VPC"
+resource "google_compute_network" "griffin-dev-vpc" {
+  name                            = "griffin-dev-vpc"
+  description                     = "VPC for Development"
   auto_create_subnetworks         = false
   delete_default_routes_on_create = false
 }
 
-resource "google_compute_subnetwork" "securenetwork-subnet" {
-  name          = "securenetwork-subnet"
+resource "google_compute_subnetwork" "griffin-dev-wps" {
+  name          = "griffin-dev-wp"
   ip_cidr_range = "192.168.16.0/20"
   region        = var.gcp_region
-  network       = google_compute_network.securenetwork.id
+  network       = google_compute_network.griffin-dev-vpc.id
 }
 
+resource "google_compute_subnetwork" "griffin-dev-mgmt" {
+  name          = "griffin-dev-mgmt"
+  ip_cidr_range = "192.168.32.0/20"
+  region        = var.gcp_region
+  network       = google_compute_network.griffin-dev-vpc.id
+}
 
-resource "google_compute_firewall" "griffin-dev-allow-rdp" {
-  name      = "${google_compute_network.securenetwork.name}-allow-rdp"
-  network   = google_compute_network.securenetwork.name
+resource "google_compute_firewall" "griffin-dev-allow-ssh" {
+  name      = "${google_compute_network.griffin-dev-vpc.name}-allow-ssh"
+  network   = google_compute_network.griffin-dev-vpc.name
   direction = "INGRESS"
 
   source_ranges = ["0.0.0.0/0"]
-  target_tags = [ "bastion-host" ]
 
   priority = "65534"
 
   allow {
     protocol = "tcp"
-    ports    = ["3389"]
+    ports    = ["22"]
+  }
+}
+
+# Production VPC
+resource "google_compute_network" "griffin-prod-vpc" {
+  name                            = "griffin-prod-vpc"
+  description                     = "VPC for production"
+  auto_create_subnetworks         = false
+  delete_default_routes_on_create = false
+}
+
+resource "google_compute_subnetwork" "griffin-prod-wp" {
+  name          = "griffin-prod-wp"
+  ip_cidr_range = "192.168.48.0/20"
+  region        = var.gcp_region
+  network       = google_compute_network.griffin-prod-vpc.id
+}
+
+resource "google_compute_subnetwork" "griffin-prod-mgmt" {
+  name          = "griffin-prod-mgmt"
+  ip_cidr_range = "192.168.64.0/20"
+  region        = var.gcp_region
+  network       = google_compute_network.griffin-prod-vpc.id
+}
+
+resource "google_compute_firewall" "griffin-prod-allow-ssh" {
+  name      = "${google_compute_network.griffin-prod-vpc.name}-allow-ssh"
+  network   = google_compute_network.griffin-prod-vpc.name
+  direction = "INGRESS"
+
+  source_ranges = ["0.0.0.0/0"]
+
+  priority = "65534"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
   }
 }
 
